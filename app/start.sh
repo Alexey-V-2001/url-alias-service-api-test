@@ -27,7 +27,7 @@ python3 check_dependencies.py
 
 if [[ "$START" == "1" ]]; then
     echo "Running service..."
-    #python3 main.py
+    python3 main.py
 fi
 
 echo "Deactivating..."
