@@ -15,8 +15,16 @@ class LinkCreate(LinkBase):
     @field_validator('original_url')
     def validate_url(cls, v):
         """Validate URL format."""
+        from urllib.parse import urlparse
+        
         if not v.startswith(('http://', 'https://')):
-            v = 'https://' + v
+            raise ValueError('URL must start with http:// or https://')
+        
+        # Validate URL structure
+        parsed = urlparse(v)
+        if not parsed.netloc or '.' not in parsed.netloc:
+            raise ValueError('URL must contain a valid domain')
+        
         return v
 
 class LinkUpdate(BaseModel):
@@ -43,6 +51,16 @@ class PaginatedLinksResponse(BaseModel):
     page: int
     page_size: int
     items: List[LinkResponse]
+    
+    @classmethod
+    def from_links(cls, links: List, total: int, page: int, page_size: int):
+        """Create response from Link objects."""
+        return cls(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[LinkResponse.model_validate(link) for link in links]
+        )
 
 class LinkStats(BaseModel):
     """Schema for link statistics."""
@@ -52,3 +70,6 @@ class LinkStats(BaseModel):
     created_at: datetime
     is_active: bool
     last_clicked: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
