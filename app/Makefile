@@ -4,15 +4,15 @@
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  activate    - Activate the virtual project environment"
 	@echo "  setup       - Setup the project (check and install dependencies)"
 	@echo "  start       - Start the FastAPI server"
 	@echo "  run         - Alias for start"
+	@echo "  test        - Run tests"
 	@echo "  clean       - Clean temporary files"
 	@echo "  help        - Show this help message"
 
-# Check and activate virtual environment
-activate:
+# Setup project
+setup: 
 	@if [ -z "$$VIRTUAL_ENV" ]; then \
 		if [ -d "venv" ]; then \
 			echo "Virtual environment found. Activating..."; \
@@ -33,11 +33,8 @@ activate:
 		fi; \
 	else \
 		echo "Virtual environment already activated."; \
-	fi
-
-# Setup project
-setup: activate
-	@if [ -f check_dependencies.py ]; then \
+	fi; \
+	if [ -f check_dependencies.py ]; then \
 		echo "Checking and installing dependencies..."; \
 		python3 check_dependencies.py; \
 	else \
@@ -46,10 +43,13 @@ setup: activate
 	fi
 	@echo "Project setup completed"
 
+test:
+	@. venv/bin/activate && python3 -m pytest
+
 # Start the service
 start: setup
 	@echo "Starting FastAPI server..."
-	python3 main.py
+	@. venv/bin/activate && python3 main.py
 
 # Alias for start
 run: start

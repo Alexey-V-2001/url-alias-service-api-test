@@ -163,3 +163,14 @@ It is required to develop a REST API service for creating and managing short URL
    ```bash
    curl -X GET "http://localhost/api/links/" -u "admin:admin"
    ```
+
+---
+
+## Tests
+
+The project includes tests for the endpoints. To run them, you need to execute the following commands:
+
+```bash
+docker-compose up -d
+docker-compose exec app make test
+```
