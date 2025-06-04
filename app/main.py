@@ -1,6 +1,6 @@
 """Main FastAPI application."""
 
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 import uvicorn
@@ -39,7 +39,7 @@ async def health_check():
 
 
 @app.get("/{short_url}")
-async def redirect_url(short_url: str, db: Session = Depends(get_db)):
+async def redirect_url(short_url: str, request: Request, db: Session = Depends(get_db)):
     """Public endpoint for redirecting shortened URLs."""
     # Get accessible link (active and not expired)
     link = LinkService.get_accessible_link(db, short_url)
@@ -48,8 +48,11 @@ async def redirect_url(short_url: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="URL not found, expired, or inactive")
 
-    # Increment click count
-    LinkService.increment_click_count(db, link)
+    # Get client information for detailed tracking
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent", "")
+    # Increment click count with detailed tracking
+    LinkService.increment_click_count(db, link, ip_address=client_ip, user_agent=user_agent)
 
     # Redirect to original URL
     return RedirectResponse(url=link.original_url,

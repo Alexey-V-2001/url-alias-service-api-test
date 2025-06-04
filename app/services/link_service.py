@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 
 from models.link import Link
+from models.click import Click
 from schemas.link import LinkCreate, LinkUpdate
 from core.config import settings
 
@@ -68,12 +69,21 @@ class LinkService:
         return link
     
     @staticmethod
-    def increment_click_count(db: Session, link: Link) -> Link:
-        """Increment the click count for a link."""
+    def increment_click_count(db: Session, link: Link, ip_address: str = None, user_agent: str = None) -> Link:
+        """Increment the click count for a link and record detailed click data."""
+        # Create detailed click record
+        click_record = Click(
+            link_id=link.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            clicked_at=datetime.now(timezone.utc)
+        )
+        db.add(click_record)
+        
+        # Update total click count
         link.click_count += 1
         db.commit()
         db.refresh(link)
-        return link
     
     @staticmethod
     def get_user_links(
@@ -132,3 +142,63 @@ class LinkService:
     def get_link_stats(db: Session, short_url: str) -> Optional[Link]:
         """Get statistics for a specific link."""
         return db.query(Link).filter(Link.short_url == short_url).first()
+
+    @staticmethod
+    def calculate_time_based_clicks(db: Session, link_id: int) -> dict:
+        """Calculate clicks for different time periods."""
+        now = datetime.now(timezone.utc)
+        
+        # Define time periods
+        one_hour_ago = now - timedelta(hours=1)
+        one_day_ago = now - timedelta(days=1)
+        one_week_ago = now - timedelta(weeks=1)
+        one_month_ago = now - timedelta(days=30)
+        
+        # Count clicks for each period
+        last_hour_clicks = db.query(Click).filter(
+            and_(Click.link_id == link_id, Click.clicked_at >= one_hour_ago)
+        ).count()
+        
+        last_day_clicks = db.query(Click).filter(
+            and_(Click.link_id == link_id, Click.clicked_at >= one_day_ago)
+        ).count()
+        
+        last_week_clicks = db.query(Click).filter(
+            and_(Click.link_id == link_id, Click.clicked_at >= one_week_ago)
+        ).count()
+        
+        last_month_clicks = db.query(Click).filter(
+            and_(Click.link_id == link_id, Click.clicked_at >= one_month_ago)
+        ).count()
+        
+        # Get last click time
+        last_click = db.query(Click).filter(Click.link_id == link_id).order_by(desc(Click.clicked_at)).first()
+        last_clicked = last_click.clicked_at if last_click else None
+        
+        return {
+            'last_hour_clicks': last_hour_clicks,
+            'last_day_clicks': last_day_clicks,
+            'last_week_clicks': last_week_clicks,
+            'last_month_clicks': last_month_clicks,
+            'last_clicked': last_clicked
+        }
+
+    @staticmethod
+    def get_all_enhanced_stats(db: Session) -> List[dict]:
+        """Get enhanced statistics for all links with time-based data."""
+        links = db.query(Link).order_by(desc(Link.click_count)).all()
+        enhanced_stats = []
+        
+        for link in links:
+            time_stats = LinkService.calculate_time_based_clicks(db, link.id)
+            stats = {
+                'short_url': link.short_url,
+                'original_url': link.original_url,
+                'click_count': link.click_count,
+                'created_at': link.created_at,
+                'is_active': link.is_active,
+                **time_stats
+            }
+            enhanced_stats.append(stats)
+        
+        return enhanced_stats

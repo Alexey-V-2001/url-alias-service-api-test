@@ -2,10 +2,11 @@ name: url-alias-service-api
 
 services:
   app:
-    image: python:3.11-slim
+    build:
+      context: .
+      dockerfile: Dockerfile.app
     env_file:
       - .env
-    working_dir: /app
     volumes:
       - ./app:/app
     ports:
@@ -13,7 +14,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: bash -c './start.sh'
     restart: unless-stopped
 
   db:

@@ -18,9 +18,9 @@ def get_all_stats(
 ):
     """Get click statistics for all links, ordered by popularity."""
     try:
-        links = LinkService.get_all_links_stats(db)
+        enhanced_stats = LinkService.get_all_enhanced_stats(db)
         
-        return [LinkStats.model_validate(link) for link in links]
+        return [LinkStats(**stats) for stats in enhanced_stats]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -30,20 +30,19 @@ def get_all_stats(
 @router.get("/{short_url}", response_model=LinkStats)
 def get_link_stats(
     short_url: str,
-    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get statistics for a specific link."""
-    link = LinkService.get_link_stats(db, short_url)
+    enhanced_stats = LinkService.get_enhanced_link_stats(db, short_url)
     
-    if not link:
+    if not enhanced_stats:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Link not found"
         )
     
     try:
-        return LinkStats.model_validate(link)
+        return LinkStats(**enhanced_stats)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

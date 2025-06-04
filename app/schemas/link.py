@@ -70,6 +70,10 @@ class LinkStats(BaseModel):
     created_at: datetime
     is_active: bool
     last_clicked: Optional[datetime] = None
+    last_hour_clicks: int = 0
+    last_day_clicks: int = 0
+    last_week_clicks: int = 0
+    last_month_clicks: int = 0
     
     class Config:
         from_attributes = True

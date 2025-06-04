@@ -1,6 +1,7 @@
 """Link model for URL shortening."""
 
 from sqlalchemy import Column, String, Boolean, DateTime, Integer
+from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta, timezone
 from db.database import Base
 from core.config import settings
@@ -22,6 +23,8 @@ class Link(Base):
     )
     click_count = Column(Integer, default=0, nullable=False)
     created_by = Column(String(50), nullable=True)  # Username who created the link
+    # Relationship to Click
+    clicks = relationship("Click", back_populates="link", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Link(short_url='{self.short_url}', original_url='{self.original_url}', clicks={self.click_count})>"
